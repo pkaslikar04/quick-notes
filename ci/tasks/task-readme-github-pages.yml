@@ -1,0 +1,18 @@
+# my-cheat-sheets task-readme-github-pages.yml
+
+platform: linux
+
+image_resource:
+  type: docker-image
+  source:
+    repository: golang
+    tag: 1.7.1
+
+inputs:
+- name: my-cheat-sheets
+
+outputs:
+- name: my-cheat-sheets-updated
+
+run:
+  path: ./my-cheat-sheets/ci/scripts/readme-github-pages.sh

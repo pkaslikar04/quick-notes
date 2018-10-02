@@ -93,5 +93,101 @@ chown root:train-schedule /opt/train-schedule
 chmod 775 /opt/train-schedule/
 yum -y install nodejs unzip
 
+• Install publish over ssh plugin
+• Manage jenkins - configure system -- Publish over ssh --SSH servers - add 
+Stage and Production servers , remote direcrory / 
+save
+• Setup credentials
+credentials > Jenkins - Global - Add credentials
+deploy
+password
+id websever_login
+save
 
-• Check out the pipeline steps reference for the Publish Over SSH plugin used in the demo: https://jenkins.io/doc/pipeline/steps/publish-over-ssh/
+• Multibranch Pipline - train ci/cd pipeline
+GitHub  - add credentials - github login id - paste WebHooks API key
+add
+Now select credentials
+select repository
+save
+
+• Go to GitHub - jenkinsfile
+edit and stage and production stage.
+pipeline {
+    agent any
+    stages {
+        stage('Build') {
+            steps {
+                echo 'Running build automation'
+                sh './gradlew build --no-daemon'
+                archiveArtifacts artifacts: 'dist/trainSchedule.zip'
+            }
+        }
+       stage('DeployToStaging'){
+          when {
+             branch 'master'
+    }
+        steps {
+        withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS'
+          sshPublisher(
+            failOnError: true,
+            continueOnErro: false,
+            publishers: [
+                sshPublisherDesc(
+                    configName: 'staging',
+                    sshCredentials: [
+                        username: "$USERNAME",
+                        encryptedPassphrase: "$USERPASS"
+                     ],
+                      transfers: [
+                          sshTransfer(
+                              sourceFiles: 'dist/trainSchedule.zip',
+                              removePrefix: 'dist/',
+                              removeDirectory: '/tmp',
+                              execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/train-Schedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule'
+                    )
+                  ]
+                )
+             ]
+           )
+        }
+      }
+  }
+    stage('DeployToProduction'){
+          when {
+             branch 'master'
+    }
+        steps {
+           input 'Does the staging enviornment look OK?'
+           milestone(1)
+           withCredentials([usernamePassword(credentialsId: 'webserver_login', usernameVariable: 'USERNAME', passwordVariable: 'USERPASS'
+             sshPublisher(
+               failOnError: true,
+               continueOnErro: false,
+               publishers: [
+                  sshPublisherDesc(
+                      configName: 'staging',
+                      sshCredentials: [
+                        username: "$USERNAME",
+                        encryptedPassphrase: "$USERPASS"
+                     ],
+                      transfers: [
+                          sshTransfer(
+                              sourceFiles: 'dist/trainSchedule.zip',
+                              removePrefix: 'dist/',
+                              removeDirectory: '/tmp',
+                              execCommand: 'sudo /usr/bin/systemctl stop train-schedule && rm -rf /opt/train-schedule/* && unzip /tmp/train-Schedule.zip -d /opt/train-schedule && sudo /usr/bin/systemctl start train-schedule'
+                    )
+                  ]
+                )
+             ]
+           )
+        }
+      }
+    }
+  }
+}
+        
+      
+        
+    

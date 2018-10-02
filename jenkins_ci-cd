@@ -1,0 +1,97 @@
+steps:1  
+Here are the commands used to install Jenkins
+sudo yum -y remove java
+sudo yum -y install java-1.8.0-openjdk
+sudo wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat-stable/jenkins.repo
+sudo rpm --import https://jenkins-ci.org/redhat/jenkins-ci.org.key
+sudo yum -y install jenkins-2.121.1
+sudo systemctl enable jenkins
+sudo systemctl start jenkins
+
+steps:2 
+• Setting up GitHub Webhooks in Jenkins
+• Configuring webhooks in Jenkins is relatively easy,
+• Create an access token in GitHub that has permission to read and create webhooks
+• Add a GitHub server in Jenkins for GitHub.com
+• Create a Jenkins credential with the token and configure the GitHub server configuration to use it
+• Check "Manage Hooks" for the GitHub server configuration.
+
+• Fork ==> Here is the sample source code complete Jenkinsfile: https://github.com/linuxacademy/cicd-pipeline-train-schedule-cd
+Setings - Go to developer settings -> Personal access tokens --> Generate new token , name jenkins
+permission admin:repo_hook and write,read.
+Copy API keys.
+
+• Configure system --> GitHub --> add github server-- name GitHUb -- APi uRL default --> add Jenkins- kind secret text -- copy paste API key
+id github_key 
+
+• Credentials - select GitHub key.
+• check manage hook-- checks
+• save
+
+• configure - Git - place your repository 
+
+• Github hook trigger fro Git scm pooling - checks
+
+• Go to GitHub Settings - check whether webhooks URL created
+
+• Pipeline Stages are large pieces of the CD process. 
+for example, 
+Build the code, 
+Test the code, 
+Deploy to Staging, 
+Deploy to Production.
+
+• Pipeline Steps are the individual tasks that make up each stage.
+for example, 
+Execute a command, 
+Copy files to a server, 
+Restart a service, 
+Wait for input from a human
+
+• Steps are implmented though special decalarative keywords in the Jenkinsfile DSL. Jenkins plugins can add new steps.
+
+
+steps:3 
+Deployment with Jenkins Pipelines
+• Continuous Delivery means ensuring that you are always able to deploy any version of your code. It is necessary in Continuous Deployment, 
+where you are actually deploying you code frequently. 
+In order to support Continious Delivery/Deployment with a Jenkins Pipelin, we need use the Pipeline to automate the 
+deployment process.
+
+
+Here’s how we can automate deployments in a Pipeline:
+• Define Stages for stages of the CD process that involve deploying:
+• For example, if we have a staging server and a production server, we could implement stages called “Deploy
+to Staging” and “Deploy to Production”
+• In each deployment stage, define Steps that perform the tasks necessary to carry out the
+deployment:
+• For example, copy files to a server, restart a service, etc
+• We can also prompt a user for approval before performing the actual production deployment
+
+Here’s the current setup for the demo:
+• Jenkins server configured to manage webhooks on GitHub
+• Personal fork of sample code at https://github.com/linuxacademy/cicd-pipeline-train-schedule-cd
+• Staging and production webservers with:
+• A user called deploy set up with permissions to perform deployment steps.
+• Systemdservice configured for the train schedule app.
+
+
+In order to set up automated deployment, you need to prepare the production and staging servers by:
+• Creating a deploy user with the necessary permissions to deploy
+• Configuring the train-schedule app as a systemd service
+
+adduser deploy
+echo "deploy:jenkins" | chpasswd
+groupadd train-schedule
+usermod -a -G train-schedule deploy
+echo "deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop train-schedule" >> /etc/sudoers
+echo "deploy ALL=(ALL) NOPASSWD: /usr/bin/systemctl start train-schedule" >> /etc/sudoers
+echo -e "[Unit]\\nDescription=Train Schedule\\nAfter=network.target\\n\\n[Service]\\n\\nType=simple\\nWorkingDirectory=/opt/train-schedule\\nExecStart=/usr/bin/node bin/www\\nStandardOutput=syslog\\nStandardError=syslog\\nRestart=on-failure\\n\\n[Install]\\nWantedBy=multi-user.target" > /etc/systemd/system/train-schedule.service
+/usr/bin/systemctl daemon-reload
+mkdir -p /opt/train-schedule
+chown root:train-schedule /opt/train-schedule
+chmod 775 /opt/train-schedule/
+yum -y install nodejs unzip
+
+
+• Check out the pipeline steps reference for the Publish Over SSH plugin used in the demo: https://jenkins.io/doc/pipeline/steps/publish-over-ssh/
